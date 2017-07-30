@@ -27,18 +27,18 @@ class HealthKitStoreCleaner {
         Cleans all HealthKIt data from the healthkit store that are created by this app.
         - Parameter onProgress: callback that informs about the cleaning progress
     */
-    func clean( onProgress: (message: String, progressInPercent: Double?)->Void){
+    func clean( onProgress: (_ message: String, _ progressInPercent: Double?)->Void){
         
-        let source = HKSource.defaultSource()
-        let predicate = HKQuery.predicateForObjectsFromSource(source)
+        let source = HKSource.default()
+        let predicate = HKQuery.predicateForObjects(from: source)
         
         let allTypes = HealthKitConstants.authorizationWriteTypes()
         
         for type in allTypes {
             
-            let semaphore = dispatch_semaphore_create(0)
+            let semaphore = DispatchSemaphore(value: 0)
 
-            onProgress(message: "deleting \(type)", progressInPercent: nil)
+            onProgress("deleting \(type)", nil)
             
             let queryCountLimit = 1000
             var result : (anchor:HKQueryAnchor?, count:Int?) = (anchor:nil, count: -1)
@@ -50,27 +50,26 @@ class HealthKitStoreCleaner {
                     limit: queryCountLimit) {
                         (query, results, deleted, newAnchor, error) -> Void in
                         
-                        if results?.count > 0 {
-                            self.healthStore.deleteObjects(results!){
-                                (success:Bool, error:NSError?) -> Void in
+                        if results?.count ?? 0 > 0 {
+                            self.healthStore.delete(results!, withCompletion: { (success:Bool, error:Error?) -> Void in
                                 if success {
-                                    print("deleted \(results?.count) from \(type)")
+                                    print("deleted \(String(describing: results?.count)) from \(type)")
                                 } else {
-                                    print("error deleting from \(type): \(error)")
+                                    print("error deleting from \(type): \(String(describing: error))")
                                 }
-                                dispatch_semaphore_signal(semaphore)
-                            }
+                                semaphore.signal()
+                            })
                         } else {
-                             dispatch_semaphore_signal(semaphore)
+                            semaphore.signal()
                         }
 
                         result.anchor = newAnchor
                         result.count = results?.count
                 }
                 
-                healthStore.executeQuery(query)
+                healthStore.execute(query)
                 
-                dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER)
+                semaphore.wait()
                 
             } while result.count != 0 || result.count==queryCountLimit
             

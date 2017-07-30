@@ -19,9 +19,9 @@ internal class JsonReader {
         - Returns: an Object of type AnyObject that the json string defines.
     */
     static func toJsonObject(jsonString: String) -> AnyObject {
-        let data = jsonString.dataUsingEncoding(NSUTF8StringEncoding)!
-        let result = try! NSJSONSerialization.JSONObjectWithData(data, options: .AllowFragments)
-        return result
+        let data = jsonString.data(using: String.Encoding.utf8)!
+        let result = try! JSONSerialization.jsonObject(with: data, options: .allowFragments)
+        return result as AnyObject
     }
     
     /**
@@ -31,7 +31,7 @@ internal class JsonReader {
      - Returns: a dictionaray for the key with AnyObject values.
      */
     static func toJsonObject(jsonString: String, returnDictForKey: String) -> Dictionary<String, AnyObject> {
-        let keyWithDictInDict = JsonReader.toJsonObject(jsonString) as! Dictionary<String, AnyObject>
+        let keyWithDictInDict = JsonReader.toJsonObject(jsonString: jsonString) as! Dictionary<String, AnyObject>
         return keyWithDictInDict[returnDictForKey] as! Dictionary<String, AnyObject>
     }
     
@@ -42,7 +42,7 @@ internal class JsonReader {
      - Returns: an array for the key with AnyObject values.
      */
     static func toJsonObject(jsonString: String, returnArrayForKey: String) -> [AnyObject] {
-        let keyWithDictInDict = JsonReader.toJsonObject(jsonString) as! Dictionary<String, AnyObject>
+        let keyWithDictInDict = JsonReader.toJsonObject(jsonString: jsonString) as! Dictionary<String, AnyObject>
         return keyWithDictInDict[returnArrayForKey] as! [AnyObject]
     }
     
@@ -53,19 +53,19 @@ internal class JsonReader {
      
     */
     static func readFileAtPath(fileAtPath: String, withJsonHandler jsonHandler: JsonHandlerProtocol) -> Void {
-        let inStream = NSInputStream(fileAtPath: fileAtPath)!
+        let inStream = InputStream(fileAtPath: fileAtPath)!
         inStream.open()
         
         let tokenizer = JsonTokenizer(jsonHandler:jsonHandler)
         
         let bufferSize = 4096
-        var buffer = Array<UInt8>(count: bufferSize, repeatedValue: 0)
+        var buffer = Array<UInt8>(repeating: 0, count: bufferSize)
         
         while inStream.hasBytesAvailable && !jsonHandler.shouldCancelReadingTheJson() {
             let bytesRead = inStream.read(&buffer, maxLength: bufferSize)
             if bytesRead > 0 {
-                let textFileContents = NSString(bytes: &buffer, length: bytesRead, encoding: NSUTF8StringEncoding)
-                tokenizer.tokenize(textFileContents as! String)
+                let textFileContents = NSString(bytes: &buffer, length: bytesRead, encoding: String.Encoding.utf8.rawValue)
+                tokenizer.tokenize(toTokenize: textFileContents! as String)
             }
         }
         
@@ -138,8 +138,8 @@ internal class JsonTokenizer {
     */
     internal func removeQuestionMarks(str: String) -> String{
         var result = str
-        result.removeAtIndex(result.startIndex)
-        result.removeAtIndex(result.endIndex.predecessor())
+        result.remove(at: result.startIndex)
+        result.remove(at: result.index(before: result.endIndex))
         return result
     }
     
@@ -148,8 +148,8 @@ internal class JsonTokenizer {
     */
     internal func writeName(context: JsonReaderContext) {
         //print("writeName", context.nameOrObject)
-        let name = removeQuestionMarks(context.nameOrObject)
-        jsonHandler.name(name)
+        let name = removeQuestionMarks(str: context.nameOrObject)
+        jsonHandler.name(name: name)
         context.nameOrObject = ""
         context.inNameOrObject = true
     }
@@ -164,12 +164,12 @@ internal class JsonTokenizer {
         
         
         if value.hasPrefix("\"") &&  value.hasSuffix("\""){
-            let strValue = removeQuestionMarks(value)
-            self.jsonHandler.stringValue(strValue)
+            let strValue = removeQuestionMarks(str: value)
+            self.jsonHandler.stringValue(value: strValue)
         } else if value == "true" {
-            self.jsonHandler.boolValue(true)
+            self.jsonHandler.boolValue(value: true)
         } else if value == "false" {
-            self.jsonHandler.boolValue(false)
+            self.jsonHandler.boolValue(value: false)
         } else  if value == "null" {
             self.jsonHandler.nullValue()
         } else  {
@@ -179,10 +179,10 @@ internal class JsonTokenizer {
             //numberFormatter.locale = NSLocale(localeIdentifier: "EN")
             //let number = numberFormatter.numberFromString(value)!
             
-            if let intValue = Int(value) {
-                jsonHandler.numberValue(intValue)
-            } else if let doubleValue = Double(value) {
-                jsonHandler.numberValue(doubleValue)
+            if let intValue = Int(value) as NSNumber? {
+                jsonHandler.numberValue(value: intValue)
+            } else if let doubleValue = Double(value) as NSNumber? {
+                jsonHandler.numberValue(value: doubleValue)
             }
             
             
@@ -192,7 +192,7 @@ internal class JsonTokenizer {
     
     internal func endObject() {
         if context.nameOrObject != "" {
-            writeValue(context)
+            writeValue(context: context)
         }
         context = context.popContext()
         jsonHandler.endObject()
@@ -200,7 +200,7 @@ internal class JsonTokenizer {
     
     internal func endArray() {
         if context.nameOrObject != "" {
-            writeValue(context)
+            writeValue(context: context)
         }
         context = context.popContext()
         jsonHandler.endArray()
@@ -261,21 +261,21 @@ internal class JsonTokenizer {
             case ":":
                 if context.inNameOrObject {
                     if context.nameOrObject.hasPrefix("\"") &&  context.nameOrObject.hasSuffix("\"") {
-                        writeName(context)
+                        writeName(context: context)
                     } else if context.nameOrObject.hasPrefix("\"") &&  !context.nameOrObject.hasSuffix("\""){
                         context.nameOrObject += String(chr)
                     } else {
-                        writeName(context)
+                        writeName(context: context)
                     }
                 }
             case ",":
                 if context.inNameOrObject  {
                     if context.nameOrObject.hasPrefix("\"") &&  context.nameOrObject.hasSuffix("\"") {
-                        writeValue(context)
+                        writeValue(context: context)
                     } else if context.nameOrObject.hasPrefix("\"") &&  !context.nameOrObject.hasSuffix("\""){
                         context.nameOrObject += String(chr)
                     } else {
-                        writeValue(context)
+                        writeValue(context: context)
                     }
                 }
             default:
@@ -373,19 +373,19 @@ class JsonStringOutputJsonHandler: DefaultJsonHandler {
     }
     
     override func name(name: String){
-        jw.writeFieldName(name)
+        jw.writeFieldName(name: name)
     }
     
     override func stringValue(value: String) {
-        jw.writeString(value)
+        jw.writeString(text: value)
     }
     
     override func numberValue(value: NSNumber) {
-        jw.writeNumber(value)
+        jw.writeNumber(number: value)
     }
     
     override func boolValue(value: Bool) {
-        jw.writeBool(value)
+        jw.writeBool(value: value)
     }
     
     override func nullValue() {

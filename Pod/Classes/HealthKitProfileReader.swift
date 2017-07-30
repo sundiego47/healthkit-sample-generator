@@ -19,11 +19,11 @@ public class HealthKitProfileReader {
     public static func readProfilesFromDisk(folder: NSURL) -> [HealthKitProfile]{
     
         var profiles:[HealthKitProfile] = []
-        let enumerator = NSFileManager.defaultManager().enumeratorAtPath(folder.path!)
+        let enumerator = FileManager.default.enumerator(atPath: folder.path!)
         for file in enumerator! {
-            let pathUrl = folder.URLByAppendingPathComponent(file as! String)
-            if NSFileManager.defaultManager().isReadableFileAtPath(pathUrl.path!) && pathUrl.pathExtension == "hsg" {
-                profiles.append(HealthKitProfile(fileAtPath:pathUrl))
+            let pathUrl = folder.appendingPathComponent(file as! String)
+            if FileManager.default.isReadableFile(atPath: pathUrl!.path) && pathUrl?.pathExtension == "hsg" {
+                profiles.append(HealthKitProfile(fileAtPath:pathUrl! as NSURL))
             }
         }
         

@@ -41,7 +41,7 @@ class MetaDataOutputJsonHandler: DefaultJsonHandler {
     
     override func stringValue(value: String){
         if collectProperties {
-            metaDataDict[name!] = value
+            metaDataDict[name!] = value as AnyObject
         }
     }
     override func numberValue(value: NSNumber){
@@ -67,7 +67,7 @@ class SampleOutputJsonHandler: JsonHandlerProtocol {
         var childs : [SampleContext] = []
         
         var description: String {
-            return "name:\(name) type:\(type) dict:\(dict) childs:\(childs)"
+            return "name:\(name ?? "") type:\(type) dict:\(dict) childs:\(childs)"
         }
         
         init(parent: SampleContext? ,type: JsonContextType){
@@ -99,7 +99,7 @@ class SampleOutputJsonHandler: JsonHandlerProtocol {
                 for child in childs {
                     result.append(child.getStructureAsDict())
                 }
-                return result;
+                return result as AnyObject;
             }
             
             
@@ -110,21 +110,21 @@ class SampleOutputJsonHandler: JsonHandlerProtocol {
                 }
             }
             
-            return resultDict
+            return resultDict as AnyObject
         }
     }
     
     internal func printWithLevel(level:Int, string:String){
         var outString = "\(level)"
-        for var i=0; i<level; i++ {
+        for _ in 0...level {
             outString += " "
         }
-        outString += string
+        outString = outString + string
         print(outString)
     }
     
     /// callback for every found HealthKitSample
-    let onSample : (sample: AnyObject, typeName:String) -> Void
+    let onSample : (_ sample: AnyObject, _ typeName:String) -> Void
     /// save the lastname to decide what is a sample and what is the name of a value
     var lastName = ""
     /// a samplecontext - created for evenry new sample
@@ -134,7 +134,7 @@ class SampleOutputJsonHandler: JsonHandlerProtocol {
     /// the healthkit sample type that is currently processed
     var hkTypeName: String? = nil
     
-    init(onSample: (sample: AnyObject, typeName:String) -> Void) {
+    init(onSample: @escaping (_ sample: AnyObject, _ typeName:String) -> Void) {
         self.onSample = onSample
     }
     
@@ -143,13 +143,13 @@ class SampleOutputJsonHandler: JsonHandlerProtocol {
     }
     
     func startArray() {
-        level++
+        level = level + 1
         if level == 2 && lastName.hasPrefix("HK") {
             hkTypeName = lastName
         }
         
         if level > 3 {
-            sampleContext = sampleContext!.createArrayContext(lastName)
+            sampleContext = sampleContext!.createArrayContext(name: lastName)
         }
     }
     
@@ -157,13 +157,13 @@ class SampleOutputJsonHandler: JsonHandlerProtocol {
         if level == 2 {
             hkTypeName = nil
         }
-        level--
+        level = level - 1
         
         sampleContext = sampleContext == nil ? nil : sampleContext!.parent
     }
     
     func startObject() {
-        level++
+        level = level + 1
         
         if level == 3 {
             // a new HKSample starts
@@ -179,34 +179,34 @@ class SampleOutputJsonHandler: JsonHandlerProtocol {
     func endObject() {
         if level == 3 {
             // the HKSample ends
-            onSample(sample: sampleContext!.getStructureAsDict(), typeName:hkTypeName!)
+            onSample(sampleContext!.getStructureAsDict(), hkTypeName!)
             sampleContext = nil
         }
         sampleContext = sampleContext == nil ? nil : sampleContext!.parent
-        level--
+        level = level - 1
     }
     
     func stringValue(value: String){
         if sampleContext != nil {
-            sampleContext!.put(lastName, value:value)
+            sampleContext!.put(key: lastName, value:value as AnyObject)
         }
     }
     
     func boolValue(value: Bool){
         if sampleContext != nil {
-            sampleContext!.put(lastName, value:value)
+            sampleContext!.put(key: lastName, value:value as AnyObject)
         }
     }
     
     func numberValue(value: NSNumber){
         if sampleContext != nil {
-            sampleContext!.put(lastName, value:value)
+            sampleContext!.put(key: lastName, value:value)
         }
     }
     
     func nullValue(){
         if sampleContext != nil {
-            sampleContext!.put(lastName, value:nil)
+            sampleContext!.put(key: lastName, value:nil)
         }
     }
     

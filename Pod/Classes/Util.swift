@@ -19,10 +19,10 @@ public class FileNameUtil {
         - Returns: the string with all the characters mentioned above removed from the string.
     */
     public static func normalizeName(userInput: String) -> String {
-        let trimmedUserInput = userInput.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceCharacterSet())
+        let trimmedUserInput = userInput.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
         
-        let illegalFileNameCharacters = NSCharacterSet.init(charactersInString: "/\\?%*|.:, \"<>")
+        let illegalFileNameCharacters = NSCharacterSet(charactersIn: "/\\?%*|.:, \"<>")
         
-        return trimmedUserInput.componentsSeparatedByCharactersInSet(illegalFileNameCharacters).joinWithSeparator("")
+        return trimmedUserInput.components(separatedBy: illegalFileNameCharacters as CharacterSet).joined(separator: "")
     }
 }

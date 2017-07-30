@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9DB05EFC751028DD93CF970F1102971B"
-               BuildableName = "HealthKitSampleGenerator.framework"
-               BlueprintName = "HealthKitSampleGenerator"
+               BlueprintIdentifier = "CE41A0B9AA44F0C3A741AF9CD922D612"
+               BuildableName = "HealthKitSampleGenerator.bundle"
+               BlueprintName = "HealthKitSampleGenerator-HealthKitSampleGenerator"
                ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -26,29 +26,9 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      codeCoverageEnabled = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "607FACE41AFB9204008FA782"
-               BuildableName = "HealthKitSampleGenerator_Tests.xctest"
-               BlueprintName = "HealthKitSampleGenerator_Tests"
-               ReferencedContainer = "container:../HealthKitSampleGenerator.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9DB05EFC751028DD93CF970F1102971B"
-            BuildableName = "HealthKitSampleGenerator.framework"
-            BlueprintName = "HealthKitSampleGenerator"
-            ReferencedContainer = "container:Pods.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
@@ -65,9 +45,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9DB05EFC751028DD93CF970F1102971B"
-            BuildableName = "HealthKitSampleGenerator.framework"
-            BlueprintName = "HealthKitSampleGenerator"
+            BlueprintIdentifier = "CE41A0B9AA44F0C3A741AF9CD922D612"
+            BuildableName = "HealthKitSampleGenerator.bundle"
+            BlueprintName = "HealthKitSampleGenerator-HealthKitSampleGenerator"
             ReferencedContainer = "container:Pods.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -83,9 +63,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9DB05EFC751028DD93CF970F1102971B"
-            BuildableName = "HealthKitSampleGenerator.framework"
-            BlueprintName = "HealthKitSampleGenerator"
+            BlueprintIdentifier = "CE41A0B9AA44F0C3A741AF9CD922D612"
+            BuildableName = "HealthKitSampleGenerator.bundle"
+            BlueprintName = "HealthKitSampleGenerator-HealthKitSampleGenerator"
             ReferencedContainer = "container:Pods.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

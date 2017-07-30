@@ -19,7 +19,7 @@ public protocol ExportTarget {
     func endExport() throws -> Void
     
     /// output the metadata of the profile
-    func writeMetaData(creationDate creationDate: NSDate, profileName: String, version: String) throws -> Void
+    func writeMetaData(creationDate: NSDate, profileName: String, version: String) throws -> Void
     /// output the user data from healthkit
     func writeUserData(userData: Dictionary <String, AnyObject>) throws -> Void
     /// start writing a type
@@ -35,7 +35,7 @@ public class JsonSingleDocExportTarget  {
     
     private(set) var jsonWriter: JsonWriter
     
-    init(outputStream: OutputStream){
+    init(outputStream: HKOutputStream){
         self.jsonWriter = JsonWriter(outputStream: outputStream)
     }
     
@@ -51,26 +51,26 @@ public class JsonSingleDocExportTarget  {
     }
     
     /// see ExportTarget Protocol
-    public func writeMetaData(creationDate creationDate: NSDate, profileName: String, version: String) {
+    public func writeMetaData(creationDate: NSDate, profileName: String, version: String) {
         
         jsonWriter.writeObjectFieldStart(HealthKitConstants.META_DATA)
         
         jsonWriter.writeField(HealthKitConstants.CREATION_DATE, value: creationDate)
         jsonWriter.writeField(HealthKitConstants.PROFILE_NAME, value: profileName)
         jsonWriter.writeField(HealthKitConstants.VERSION, value: version)
-        jsonWriter.writeField(HealthKitConstants.TYPE, value: String(JsonSingleDocExportTarget))
+        jsonWriter.writeField(HealthKitConstants.TYPE, value: String(describing: JsonSingleDocExportTarget.self))
         
         jsonWriter.writeEndObject()
     }
     
     /// see ExportTarget Protocol
     public func writeUserData(userData: Dictionary <String, AnyObject>) throws {
-        try jsonWriter.writeFieldWithObject(HealthKitConstants.USER_DATA, value: userData)
+        try jsonWriter.writeFieldWithObject(HealthKitConstants.USER_DATA, value: userData as AnyObject)
     }
     
     /// see ExportTarget Protocol
     public func startWriteType(type:HKSampleType) -> Void {
-        jsonWriter.writeArrayFieldStart(String(type))
+        jsonWriter.writeArrayFieldStart(String(describing: type))
     }
     
     /// see ExportTarget Protocol
@@ -80,7 +80,7 @@ public class JsonSingleDocExportTarget  {
     
     /// see ExportTarget Protocol
     public func writeDictionary(entry:Dictionary <String, AnyObject>) throws -> Void {
-        try jsonWriter.writeObject(entry)
+        try jsonWriter.writeObject(anyObject: entry as AnyObject)
     }
 }
 
@@ -111,7 +111,7 @@ public class JsonSingleDocAsFileExportTarget : JsonSingleDocExportTarget, Export
         var valid = true
         
         // if the outputFileName already exists, the state is only valid, if overwrite is allowed
-        if NSFileManager.defaultManager().fileExistsAtPath(outputFileName) {
+        if FileManager.default.fileExists(atPath: outputFileName) {
             valid = valid && overwriteIfExist
         }
         

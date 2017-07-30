@@ -32,7 +32,7 @@ class SampleCreatorRegistry {
             } else if type.hasPrefix("HKWorkoutTypeIdentifier"){
                 sampleCreator = WorkoutSampleCreator()
             } else {
-                print("unsupported", typeName)
+                print("unsupported", typeName ?? "")
             }
         }
         return sampleCreator
@@ -62,17 +62,19 @@ extension SampleCreator {
     */
     func dictToTimeframe(dict:Dictionary<String, AnyObject>) -> (sDate:NSDate, eDate:NSDate) {
         
-        let startDateNumber = dict[HealthKitConstants.S_DATE] as! Double
-        let endDateOptNumber   = dict[HealthKitConstants.E_DATE] as? Double
-        
-        let startDate = NSDate(timeIntervalSince1970: startDateNumber/1000)
-        var endDate: NSDate? = nil
-        if let endDateNumber = endDateOptNumber {
-            endDate = NSDate(timeIntervalSince1970: endDateNumber/1000)
-        } else {
-            endDate = startDate
+        if let startDateNumber = dict[HealthKitConstants.S_DATE] {
+            let endDateOptNumber   = dict[HealthKitConstants.E_DATE]
+            
+            let startDate = NSDate(timeIntervalSince1970: startDateNumber.doubleValue/1000.0)
+            var endDate: NSDate? = nil
+            if let endDateNumber = endDateOptNumber?.doubleValue {
+                endDate = NSDate(timeIntervalSince1970: endDateNumber/1000)
+            } else {
+                endDate = startDate
+            }
+            return (startDate, endDate!)
         }
-        return (startDate, endDate!)
+        return(NSDate(),NSDate())
     }
     
     /**
@@ -83,9 +85,9 @@ extension SampleCreator {
     */
     func dictToCategorySample(dict:Dictionary<String, AnyObject>, forType type: HKCategoryType) -> HKCategorySample {
         let value = dict[HealthKitConstants.VALUE] as! Int
-        let dates = dictToTimeframe(dict)
+        let dates = dictToTimeframe(dict: dict)
         
-        return HKCategorySample(type: type, value: value, startDate: dates.sDate , endDate: dates.eDate)
+        return HKCategorySample(type: type, value: value, start: dates.sDate as Date , end: dates.eDate as Date)
     }
 
     /**
@@ -96,15 +98,15 @@ extension SampleCreator {
      */
     func dictToQuantitySample(dict:Dictionary<String, AnyObject>, forType type: HKQuantityType) -> HKQuantitySample {
         
-        let dates = dictToTimeframe(dict)
+        let dates = dictToTimeframe(dict: dict)
         
-        let value   = dict[HealthKitConstants.VALUE] as! Double
+        let value   = dict[HealthKitConstants.VALUE] as? NSNumber
         let strUnit = dict[HealthKitConstants.UNIT] as? String
         
-        let hkUnit = HKUnit(fromString: strUnit!)
-        let quantity = HKQuantity(unit: hkUnit, doubleValue: value)
+        let hkUnit = HKUnit(from: strUnit!)
+        let quantity = HKQuantity(unit: hkUnit, doubleValue: value?.doubleValue ?? 0)
         
-        return HKQuantitySample(type: type, quantity: quantity, startDate: dates.sDate, endDate: dates.eDate)
+        return HKQuantitySample(type: type, quantity: quantity, start: dates.sDate as Date, end: dates.eDate as Date)
     }
 }
 
@@ -113,12 +115,12 @@ class CategorySampleCreator : SampleCreator {
     let type: HKCategoryType
     
     init(typeName:String){
-        self.type = HKObjectType.categoryTypeForIdentifier(typeName)!
+        self.type = HKObjectType.categoryType(forIdentifier: HKCategoryTypeIdentifier(rawValue: typeName))!
     }
     
     func createSample(sampleDict: AnyObject) -> HKSample? {
         if let dict = sampleDict as? Dictionary<String, AnyObject> {
-            return dictToCategorySample(dict, forType:type)
+            return dictToCategorySample(dict: dict, forType:type)
         }
         return nil
     }
@@ -129,13 +131,13 @@ class QuantitySampleCreator : SampleCreator {
     let type: HKQuantityType
     
     init(typeName:String){
-        self.type = HKObjectType.quantityTypeForIdentifier(typeName)!
+        self.type = HKObjectType.quantityType(forIdentifier: HKQuantityTypeIdentifier(rawValue: typeName))!
     }
     
     func createSample(sampleDict: AnyObject) -> HKSample? {
         
         if let dict = sampleDict as? Dictionary<String, AnyObject> {
-            return dictToQuantitySample(dict, forType:type)
+            return dictToQuantitySample(dict: dict, forType:type)
         }
         return nil
     }
@@ -147,22 +149,22 @@ class CorrelationSampleCreator : SampleCreator {
     let type: HKCorrelationType
     
     init(typeName: String){
-        self.type = HKObjectType.correlationTypeForIdentifier(typeName)!
+        self.type = HKObjectType.correlationType(forIdentifier: HKCorrelationTypeIdentifier(rawValue: typeName))!
     }
     
     func createSample(sampleDict: AnyObject) -> HKSample? {
         
         if let dict = sampleDict as? Dictionary<String, AnyObject> {
-            let dates = dictToTimeframe(dict)
+            let dates = dictToTimeframe(dict: dict)
             
             var objects: Set<HKSample> = []
             
             if let objectsArray = dict[HealthKitConstants.OBJECTS] as? [AnyObject] {
                 for object in objectsArray {
-                    if let subDict = object as? Dictionary<String, AnyObject> {
+                    if let subDict = object as? Dictionary<String, AnyObject>  {
                         let subTypeName = subDict[HealthKitConstants.TYPE] as? String
-                        if let creator = SampleCreatorRegistry.get(subTypeName) {
-                            let sampleOpt = creator.createSample(subDict)
+                        if let creator = SampleCreatorRegistry.get(typeName: subTypeName) {
+                            let sampleOpt = creator.createSample(sampleDict: subDict as AnyObject)
                             if let sample = sampleOpt {
                                 objects.insert(sample)
                             }
@@ -176,7 +178,7 @@ class CorrelationSampleCreator : SampleCreator {
                 return nil
             }
             
-            return HKCorrelation(type: type, startDate: dates.sDate, endDate: dates.eDate, objects: objects)
+            return HKCorrelation(type: type, start: dates.sDate as Date, end: dates.eDate as Date, objects: objects)
         }
         return nil
     }
@@ -189,12 +191,12 @@ class WorkoutSampleCreator : SampleCreator {
     func createSample(sampleDict: AnyObject) -> HKSample? {
 
         if let dict = sampleDict as? Dictionary<String, AnyObject> {
-            let dates = dictToTimeframe(dict)
+            let dates = dictToTimeframe(dict: dict)
          
             let activityTypeRawValue = dict[HealthKitConstants.WORKOUT_ACTIVITY_TYPE] as? UInt
             let activityType = HKWorkoutActivityType(rawValue: activityTypeRawValue!)
             
-            let duration = dict[HealthKitConstants.DURATION] as? NSTimeInterval
+            let duration = dict[HealthKitConstants.DURATION] as? TimeInterval
             let totalDistance = dict[HealthKitConstants.TOTAL_DISTANCE] as? Double // always HKUnit.meterUnit()
             let totalEnergyBurned = dict[HealthKitConstants.TOTAL_ENERGY_BURNED] as? Double //always HKUnit.kilocalorieUnit()
             
@@ -207,14 +209,14 @@ class WorkoutSampleCreator : SampleCreator {
                         let eventType = HKWorkoutEventType(rawValue: eventTypeRaw!)!
                         let startDateNumber = subDict[HealthKitConstants.S_DATE] as! Double
                         let startDate = NSDate(timeIntervalSince1970: startDateNumber/1000)
-                        events.append(HKWorkoutEvent(type: eventType, date: startDate))
+                        events.append(HKWorkoutEvent(type: eventType, date: startDate as Date))
                     }
                 }
             }
             if events.count > 0 {
-                return HKWorkout(activityType: activityType!, startDate: dates.sDate, endDate: dates.eDate, workoutEvents: events, totalEnergyBurned: HKQuantity(unit: HKUnit.kilocalorieUnit(), doubleValue: totalEnergyBurned!), totalDistance: HKQuantity(unit: HKUnit.meterUnit(), doubleValue: totalDistance!), metadata: nil)
+                return HKWorkout(activityType: activityType!, start: dates.sDate as Date, end: dates.eDate as Date, workoutEvents: events, totalEnergyBurned: HKQuantity(unit: HKUnit.kilocalorie(), doubleValue: totalEnergyBurned!), totalDistance: HKQuantity(unit: HKUnit.meter(), doubleValue: totalDistance!), metadata: nil)
             } else {
-                return HKWorkout(activityType: activityType!, startDate: dates.sDate, endDate: dates.eDate, duration: duration!, totalEnergyBurned: HKQuantity(unit: HKUnit.kilocalorieUnit(), doubleValue: totalEnergyBurned!), totalDistance: HKQuantity(unit: HKUnit.meterUnit(), doubleValue: totalDistance!), metadata: nil)
+                return HKWorkout(activityType: activityType!, start: dates.sDate as Date, end: dates.eDate as Date, duration: duration!, totalEnergyBurned: HKQuantity(unit: HKUnit.kilocalorie(), doubleValue: totalEnergyBurned!), totalDistance: HKQuantity(unit: HKUnit.meter(), doubleValue: totalDistance!), metadata: nil)
             }
         }
         return nil
